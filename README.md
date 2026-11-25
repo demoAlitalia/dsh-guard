@@ -67,13 +67,15 @@ change its behaviour is only the plugin's own configuration and the three emerge
 
 ## Install
 
-### From npm (recommended)
+### From npm (after publication)
 
-The package is published as `dsh-guard-native`. In DSH, open **Plugins → Add plugin**, enter the package
-name, and confirm; or run `dsh plugin --profile desktop add dsh-guard-native` from a terminal. Restart
-DSH afterwards. It installs as an ordinary bundle: the package joins `dsh.profile.bundles`, the loader
-applies its `cordis.patch.yml`, and the client half is served as `/plugins/dsh-guard-native/client.js`.
-There is no build step. Windows only: it gates the `pwsh` executor.
+The package name is `dsh-guard-native`, and npm publication is in progress. Until the first release, use
+the pinned Git commit in the Open Plugin Market listing, or install this directory from a source
+checkout. Once published, open **Plugins → Add plugin**, enter the package name, and confirm; or run
+`dsh plugin --profile desktop add dsh-guard-native` from a terminal. Restart DSH afterwards. It installs
+as an ordinary bundle: the package joins `dsh.profile.bundles`, the loader applies its
+`cordis.patch.yml`, and the client half is served as `/plugins/dsh-guard-native/client.js`. There is no
+build step. Windows only: it gates the `pwsh` executor.
 
 To browse community indexes instead, enable
 **Plugins → Experimental plugins → Custom plugin indexes**, open **Discover → Add index source**, and add

@@ -59,9 +59,10 @@ dsh-guard ASK [ps-recursive-delete, external-path-target]: BULK DELETES paths OU
 
 ## 安装
 
-### 从 npm 安装（推荐）
+### 从 npm 安装（发布后）
 
-包名 `dsh-guard-native`。在 DSH 里打开 **插件 → 添加插件**，输入包名并确认；或在终端运行
+包名 `dsh-guard-native`，npm 发布进行中。首个版本发布前，请用 Open Plugin Market 收录里固定的 Git 提交，
+或从源码目录安装。发布后：在 DSH 里打开 **插件 → 添加插件**，输入包名并确认；或在终端运行
 `dsh plugin --profile desktop add dsh-guard-native`，然后重启 DSH。它按普通 bundle 安装：包进入
 `dsh.profile.bundles`，加载器应用包内的 `cordis.patch.yml`，客户端由宿主以
 `/plugins/dsh-guard-native/client.js` 提供，无构建步骤。**仅 Windows**（它守的是 `pwsh` 执行器）。
