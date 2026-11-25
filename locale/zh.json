@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "dsh-guard 闸门",
+    "description": "批量或越界的 pwsh、write、edit 调用先询问；无界删除直接拒绝；并提供 24 小时审批面板。",
+    "detail": "docs/DETAIL.md"
+  }
+}

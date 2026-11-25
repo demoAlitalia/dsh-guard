@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" role="img" aria-label="dsh-guard gate">
+  <path d="M18 4.5 30 9v8.4c0 7.2-5 12.1-12 14.1-7-2-12-6.9-12-14.1V9z" fill="#16324f" stroke="#7fb2e8" stroke-width="1.8" stroke-linejoin="round" />
+  <path d="M11.4 13.4h13.2" stroke="#cfe4fb" stroke-width="2.2" stroke-linecap="round" />
+  <path d="M13.2 13.4v9.2M18 13.4v9.2M22.8 13.4v9.2" stroke="#cfe4fb" stroke-width="2.2" stroke-linecap="round" />
+</svg>

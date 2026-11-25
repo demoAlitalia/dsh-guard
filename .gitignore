@@ -1,0 +1,5 @@
+node_modules/
+*.tgz
+.plugin-market-cache/
+Thumbs.db
+.DS_Store

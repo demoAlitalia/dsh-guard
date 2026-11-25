@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "dsh-guard gate",
+    "description": "Asks before bulk or out-of-workspace pwsh, write and edit calls, denies unbounded deletes, and reports a 24-hour approval panel.",
+    "detail": "docs/DETAIL.md"
+  }
+}

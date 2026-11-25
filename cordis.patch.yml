@@ -1,0 +1,12 @@
+# dsh-guard-native bundle patch.
+#
+# This file ships INSIDE the package, so it must not contain absolute paths: a bundle patch is applied
+# verbatim on whatever machine installs it. The gate discovers its settings file from DSH_PROFILE_DIR
+# (`<profile>\dsh-guard.json`), which the host exports, so an empty config here is complete.
+#
+# Installing or removing this bundle is what turns the gate on or off; the row id is stable so a patch
+# entry (or another bundle) can target it with an id override.
+- insert:
+    - id: dsh-guard-native
+      name: 'dsh-guard-native'
+      config: {}

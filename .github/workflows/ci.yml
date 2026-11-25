@@ -1,0 +1,58 @@
+# Offline checks only: the plugin imports nothing outside the Node standard library, so CI needs no
+# install step and no network. The Windows installer is syntax-checked rather than executed.
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Syntax-check the plugin and the config schema
+        run: |
+          node --check lib/index.mjs
+          node --check config.schema.mjs
+
+      - name: Run the offline matrix
+        run: node test/matrix.mjs
+
+      - name: Check that the development-workspace copy is in sync
+        # Only meaningful when that workspace exists; the script exits 0 and says so otherwise.
+        run: node scripts/sync-source.mjs --check
+
+      - name: PowerShell syntax check (installer and status script)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          foreach ($f in @('scripts/install.ps1', 'scripts/status.ps1')) {
+            $errors = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f), [ref]$null, [ref]$errors)
+            if ($errors -and $errors.Count) {
+              $errors | ForEach-Object { Write-Error "$f line $($_.Extent.StartLineNumber): $($_.Message)" }
+              exit 1
+            }
+            Write-Host "parse OK: $f"
+          }
+
+      - name: Installer dry run against a scratch profile
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $scratch = Join-Path $env:RUNNER_TEMP 'scratch-profile'
+          New-Item -ItemType Directory -Force -Path $scratch | Out-Null
+          Set-Content -LiteralPath (Join-Path $scratch 'cordis.patch.yml') -Value "[]`n" -Encoding utf8
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -ProfileDir $scratch -DryRun
+          if (-not (Test-Path (Join-Path $scratch 'cordis.patch.yml'))) { Write-Error 'scratch patch file vanished' }

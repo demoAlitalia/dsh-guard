@@ -1,0 +1,90 @@
+{
+  "name": "dsh-guard-native",
+  "version": "0.7.0",
+  "description": "A semantic gate in front of the DeepSeek Harness filesystem sandbox: it escalates bulk/traversal/mass-scope pwsh, write and edit calls for human approval before they run, never asks about a read, and publishes a 24h approval panel.",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "plugin",
+    "bundle",
+    "guard",
+    "sandbox",
+    "bulk-delete",
+    "approval"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "author": "dsh-guard contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/demoAlitalia/dsh-guard.git"
+  },
+  "homepage": "https://github.com/demoAlitalia/dsh-guard#readme",
+  "bugs": {
+    "url": "https://github.com/demoAlitalia/dsh-guard/issues"
+  },
+  "main": "lib/index.mjs",
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./client": "./client/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./config": "./config.schema.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client",
+    "cordis.patch.yml",
+    "locale",
+    "docs",
+    "icon.svg",
+    "config.schema.mjs",
+    "manifest.json",
+    "scripts",
+    "test",
+    "README.md",
+    "README.zh.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.2-rc.5 <0.3.0-0"
+  },
+  "scripts": {
+    "test": "node test/matrix.mjs",
+    "sync-from-workspace": "node scripts/sync-source.mjs",
+    "install-guard": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1",
+    "status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -Status",
+    "uninstall-guard": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -Uninstall"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    },
+    "plugin": {
+      "id": "dsh-guard-native",
+      "entry": "./lib/index.mjs",
+      "provenance": {
+        "kind": "profile-bundle",
+        "note": "Installed into the profile like any other bundle: `dsh.profile.bundles` lists dsh-guard-native, the loader applies cordis.patch.yml from the package, and the client half is served by the host as /plugins/dsh-guard-native/client.js so it can register a settings section. The older profile-local mode (a loose .mjs copied next to cordis.patch.yml) is still supported by scripts/install.ps1 for machines that cannot install packages."
+      },
+      "files": {
+        "module": "<profile>\\node_modules\\dsh-guard-native\\lib\\index.mjs",
+        "client": "<profile>\\node_modules\\dsh-guard-native\\client\\client.js",
+        "config": "<profile>\\dsh-guard.json",
+        "loadMarker": "<profile>\\dsh-guard-native-loaded.txt",
+        "statusRouteTrace": "<profile>\\dsh-guard-native-loaded-status-route.txt"
+      }
+    }
+  }
+}

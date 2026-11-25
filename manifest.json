@@ -1,0 +1,8 @@
+{
+  "name": "dsh-guard",
+  "version": "0.7.0",
+  "source": "lib/index.mjs",
+  "sha256": "2f0b3b9b3bb5535020e3e58a420642d84a3453f32b3c56bd481c272de3b520f8",
+  "checks": 238,
+  "note": "Recorded for the revision whose offline matrix passes. The installer verifies lib/index.mjs against this hash before copying it into a profile, and fails when the file has been edited without re-running the tests. Regenerate with: node scripts/sync-source.mjs --record then --record-verified --checks <n>"
+}
