@@ -747,7 +747,7 @@ console.log('\n--- bundle support ---');
   process.env.DSH_PROFILE_DIR = stateDir;
   const mountRoutes = () => {
     const routes = [];
-    apply({ on: () => {}, inject: (deps, cb) => { if (deps[0] === 'webServer') cb({ webServer: { register: (r) => routes.push(r) } }); } },
+    apply({ on: () => {}, inject: (deps, cb) => { if (deps[0] === 'webServer') cb({ webServer: { register: (r) => routes.push(r) }, get: (n) => n === 'connection' ? { requestRejection: () => undefined } : undefined }); } },
       { stateDir, auditLog: join(stateDir, 'a.jsonl'), loadMarker: '', configFile: join(stateDir, 'dsh-guard.json') });
     return routes.find((r) => r.path === '/dsh-guard/action').handler;
   };

@@ -262,6 +262,11 @@ Every escalation answers four questions in a fixed order:
 | **Ledger** | `<stateDir>\guard-audit.jsonl` | every judgement, one JSON object per line |
 | **Status script** | `scripts\status.ps1` (installed as `dsh-guard-status.ps1`) | the same report from the command line; `-Json` for machine reading |
 
+The status page and the settings actions require the running DSH browser session: both handlers call the
+Host's `ctx.connection.requestRejection(request)` and answer `401`/`403` otherwise (`503` when the
+connection service is absent), so another local page or a plain `curl` cannot read the ledger or flip a
+switch.
+
 A ledger row:
 
 ```json
@@ -272,10 +277,11 @@ A ledger row:
  "sandbox":"","justification":"","preview":"Set-Content -Path .\\out\\*.log -Value \"\""}
 ```
 
-There is **no settings-page block** for this plugin, and that is a platform constraint rather than an
-omission: `settings.section` is a *client* slot, and a client contribution must ship a built
-`lib/client.js` that the host serves as `/plugins/<package>/client.js`. A profile-local module cannot
-register one. The status page above is the supported on-demand surface.
+There is **no settings-page block for the profile-local install**: `settings.section` is a *client*
+slot, and a client contribution must ship a built `lib/client.js` that the host serves as
+`/plugins/<package>/client.js`; a loose profile module cannot register one. Installed as a bundle (npm
+or a directory), the client half ships, so **Settings → dsh-guard 闸门** is present. The status page and
+`scripts/status.ps1` remain the on-demand surfaces.
 
 ## Emergency switches
 

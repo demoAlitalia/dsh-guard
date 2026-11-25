@@ -206,6 +206,10 @@ dsh-guard active (...). workspace: F:\work\my-project (this session's own cwd). 
 | **台账** | `<stateDir>\guard-audit.jsonl` | 每次判定一行 JSON |
 | **状态脚本** | `scripts\status.ps1`（安装为 `dsh-guard-status.ps1`） | 命令行版同一份报告；`-Json` 供机器读 |
 
+状态页与设置页动作都要求当前 DSH 浏览器会话：两个 handler 都调用宿主的
+`ctx.connection.requestRejection(request)`，否则返回 `401`/`403`（connection 服务缺失时 `503`），
+所以别的本地页面或 `curl` 既读不到台账，也拨不动开关。
+
 一行台账示例：
 
 ```json
@@ -216,7 +220,10 @@ dsh-guard active (...). workspace: F:\work\my-project (this session's own cwd). 
  "sandbox":"","justification":"","preview":"Set-Content -Path .\\out\\*.log -Value \"\""}
 ```
 
-**没有设置页区块**，这是平台约束而非偷懒：`settings.section` 是**客户端** slot，客户端贡献必须带已构建的 `lib/client.js`，由宿主以 `/plugins/<包>/client.js` 提供；profile 里的本地模块注册不了。上面的状态页就是官方支持的按需入口。
+**本地 profile 安装没有设置页区块**：`settings.section` 是**客户端** slot，客户端贡献必须带已构建的
+`lib/client.js`，由宿主以 `/plugins/<包>/client.js` 提供；散装的 profile 模块注册不了。按 bundle 安装
+（npm 或目录）时会带上客户端半边，**设置 → dsh-guard 闸门** 区块存在；状态页与 `scripts/status.ps1`
+仍是按需入口。
 
 ## 三个紧急开关
 
