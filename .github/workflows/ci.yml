@@ -1,5 +1,7 @@
 # Offline checks only: the plugin imports nothing outside the Node standard library, so CI needs no
 # install step and no network. The Windows installer is syntax-checked rather than executed.
+# Windows only: the gate targets the `pwsh` executor, and the matrix's real-filesystem wiring cases
+# use Windows path semantics.
 name: ci
 
 on:
@@ -13,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [windows-latest]
         node: [20, 22]
     steps:
       - uses: actions/checkout@v4

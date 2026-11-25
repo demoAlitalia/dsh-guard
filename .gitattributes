@@ -1,0 +1,5 @@
+# Keep the published module byte-identical across checkouts: the manifest pins a SHA-256, and a
+# CRLF checkout on a Windows runner would otherwise change the hash (the 2026-11-25 CI failure).
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
