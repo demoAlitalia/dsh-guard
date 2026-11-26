@@ -685,7 +685,8 @@ console.log('\n--- 24h approval panel ---');
     audit: summarizeAudit(''), sessions: [], approvals: summarizeApprovals(saved.rows, Date.now(), 24),
   });
   ok(rep.approvals.asked === 2 && rep.approvals.approved === 1 && rep.approvals.rejected === 1, 'the status report carries the 24h block');
-  ok(statusReportHtml(rep).includes('approvals (last 24h)'), 'the HTML page renders the panel');
+  ok(statusReportHtml(rep, 'en').includes('approvals (last 24h)'), 'the HTML page renders the panel (English)');
+  ok(statusReportHtml(rep).includes('审批结果（最近 24 小时）'), 'the HTML page defaults to Chinese');
 
   for (let i = 0; i < 30; i++) { asked('b' + i, 'dsh-guard ASK [wildcard-target]: x'); decided('b' + i, 'allowed-once'); }
   await new Promise((r) => setTimeout(r, 800));
@@ -872,6 +873,44 @@ console.log('\n--- noise fixes (remote scope, read-only externals, sinks, archiv
   ok(denied.kind === 'deny' && /askMode=deny/.test(denied.reason), 'askMode=deny refuses instead of asking, with the reason attached');
   const asked = await runGate({});
   ok(asked.kind === 'ask', 'the default askMode still asks');
+
+  // 6. statusRouteAuth: a local single-user install can read the page from a plain browser tab;
+  //    the default keeps the host-connection fence. The action route is never relaxed.
+  const statusRoute = async (auth) => {
+    const routes = [];
+    apply({ on: () => {}, inject: (deps, cb) => { if (deps[0] === 'webServer') cb({ webServer: { register: (r) => routes.push(r) } }); } },
+      { stateDir: mkdtempSync(join(tmpdir(), 'dg-route-')), auditLog: join(tmpdir(), 'dg-route-' + Date.now() + '.jsonl'), loadMarker: '', statusRouteAuth: auth });
+    const handler = routes.find((r) => r.path === '/dsh-guard/status').handler;
+    const res = { status: 0, body: '', writeHead(s) { this.status = s; }, end(b) { this.body = String(b); } };
+    handler({ url: '/dsh-guard/status?format=json', headers: { host: '127.0.0.1:1' } }, res);
+    return res;
+  };
+  ok((await statusRoute('local')).status === 200, 'statusRouteAuth=local serves the read-only page to a plain request');
+  ok((await statusRoute('connection')).status === 503, 'the default fences the page when no host connection is available');
+
+  // 8. the two live keys follow the config file without a restart
+  const liveDir = mkdtempSync(join(tmpdir(), 'dg-live-'));
+  const liveCfgPath = join(liveDir, 'dsh-guard.json');
+  writeFileSync(liveCfgPath, JSON.stringify({ askMode: 'ask', statusRouteAuth: 'connection' }));
+  const liveRegs = [];
+  const liveRoutes = [];
+  apply({ on: (e, l) => liveRegs.push({ e, l }), inject: (deps, cb) => { if (deps[0] === 'webServer') cb({ webServer: { register: (r) => liveRoutes.push(r) } }); } },
+    { stateDir: liveDir, auditLog: join(liveDir, 'a.jsonl'), loadMarker: '', configFile: liveCfgPath });
+  const liveGate = liveRegs.find((r) => r.e === 'tools/pre-execute').l;
+  const liveStatus = liveRoutes.find((r) => r.path === '/dsh-guard/status').handler;
+  await new Promise((r) => setTimeout(r, 60));
+  writeFileSync(liveCfgPath, JSON.stringify({ askMode: 'deny', statusRouteAuth: 'local' }));
+  const liveVerdict = await liveGate({ name: 'pwsh', arguments: { command: "Remove-Item -Recurse -Force 'F:\\work\\proj\\build'" }, agent: { id: 's', session: { header: { cwd: SESSION } } } }, async () => ({ kind: 'allow' }));
+  ok(liveVerdict.kind === 'deny' && /askMode=deny/.test(liveVerdict.reason), 'a saved askMode takes effect on the next call, no restart');
+  const liveRes = { status: 0, writeHead(s) { this.status = s; }, end() {} };
+  liveStatus({ url: '/dsh-guard/status', headers: { host: '127.0.0.1:1' } }, liveRes);
+  ok(liveRes.status === 200, 'a saved statusRouteAuth=local opens the page on the next request, no restart');
+
+  // 9. additionalRoots is a list, and statusRouteAuth normalizes
+  ok(judge({ ...base, toolName: 'pwsh', sessionWorkspace: SESSION, additionalRoots: ['D:\\a', 'D:\\b'], command: "Set-Content -LiteralPath 'D:\\b\\x.txt' -Value 1" }).decision === 'allow',
+    'additionalRoots accepts several roots');
+  ok(configOf({}).statusRouteAuth === 'connection' && configOf({ statusRouteAuth: 'local' }).statusRouteAuth === 'local',
+    'statusRouteAuth normalizes to connection or local');
 
   console.log(localFail === 0 ? '  (all noise-fix checks passed)' : '  (' + localFail + ' noise-fix checks failed)');
 }
@@ -1136,7 +1175,7 @@ console.log('\n--- status surface ---');
   console.log(`${ok2 ? 'PASS' : 'FAIL'}  a disabled guard reports itself as disabled (never silently "active")`);
 
   const html = statusReportHtml(report);
-  const ok3 = html.startsWith('<!doctype html>') && html.includes('dsh-guard status') && html.includes('F:\\work\\app') && !html.includes('<script');
+  const ok3 = html.startsWith('<!doctype html>') && html.includes('dsh-guard') && html.includes('F:\\work\\app') && !html.includes('<script');
   if (!ok3) fail++;
   console.log(`${ok3 ? 'PASS' : 'FAIL'}  the page renders self-contained HTML with no script tags`);
 
@@ -1353,8 +1392,8 @@ console.log('\n--- plugin wiring ---');
     console.log(`${okIso ? 'PASS' : 'FAIL'}  the matrix wrote nothing into the live profile receipt or ledger`);
 
     console.log('\n---');
-    const total = cases.length + sw.length + 190;
-    console.log(fail === 0 ? `ALL PASS (${total} checks, counted from the harness: ${cases.length} matrix + ${sw.length} switch + 190 wiring/scope/classification/read-only/crossing/alias/status/precision/coverage/ops/cwd/panel/bundle/manifest)` : `FAILURES: ${fail}`);
+    const total = cases.length + sw.length + 197;
+    console.log(fail === 0 ? `ALL PASS (${total} checks, counted from the harness: ${cases.length} matrix + ${sw.length} switch + 197 wiring/scope/classification/read-only/crossing/alias/status/precision/coverage/ops/cwd/panel/bundle/manifest)` : `FAILURES: ${fail}`);
     if (fail > 0) process.exitCode = 1;
   })();
 }

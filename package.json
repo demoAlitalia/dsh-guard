@@ -1,6 +1,6 @@
 {
   "name": "dsh-guard-native",
-  "version": "0.7.0",
+  "version": "0.7.5",
   "description": "A semantic gate in front of the DeepSeek Harness filesystem sandbox: it escalates bulk/traversal/mass-scope pwsh, write and edit calls for human approval before they run, never asks about a read, and publishes a 24h approval panel.",
   "keywords": [
     "dsh",

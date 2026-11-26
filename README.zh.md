@@ -308,7 +308,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Unins
 ## 开发
 
 ```powershell
-node test/matrix.mjs      # 238 项离线自检：规则矩阵、开关、工作区解析、动作分类、
+node test/matrix.mjs      # 245 项离线自检：规则矩阵、开关、工作区解析、动作分类、
                           # 只读静默、别名陷阱、升权地板、升级文案、状态面、装配
 node scripts/sync-source.mjs --check    # 本目录与工作区副本是否同步
 node scripts/sync-source.mjs --write    # 工作区 -> 本项目

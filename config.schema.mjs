@@ -36,6 +36,13 @@ export const CONFIG_FIELDS = [
       'What an escalation does: ask a human, or refuse with the same reason. Use "deny" where approvals are disabled — there an ask is auto-rejected in milliseconds and reads as an approval error.',
   },
   {
+    name: 'statusRouteAuth',
+    type: '"connection" | "local"',
+    default: 'connection',
+    summary:
+      'Who may read /dsh-guard/status: only the running app connection, or any local reader (a plain browser tab). The action route stays fenced either way.',
+  },
+  {
     name: 'workspace',
     type: 'string (absolute path)',
     default: '',
@@ -171,6 +178,7 @@ export function withDefaults(raw, env) {
   if (typeof out.gating !== 'boolean') out.gating = true;
   if (out.statusLine !== false && out.statusLine !== 'brief') out.statusLine = true;
   out.askMode = out.askMode === 'deny' ? 'deny' : 'ask';
+  out.statusRouteAuth = out.statusRouteAuth === 'local' ? 'local' : 'connection';
   if (!Array.isArray(out.protectedRoots)) out.protectedRoots = [];
   if (!Array.isArray(out.additionalRoots)) out.additionalRoots = [];
   if (!Array.isArray(out.extraGatedTools)) out.extraGatedTools = [];
@@ -202,6 +210,9 @@ export function validateConfig(raw, env) {
   }
   if (raw.askMode !== undefined && raw.askMode !== 'ask' && raw.askMode !== 'deny') {
     problems.push('askMode must be "ask" or "deny"');
+  }
+  if (raw.statusRouteAuth !== undefined && raw.statusRouteAuth !== 'connection' && raw.statusRouteAuth !== 'local') {
+    problems.push('statusRouteAuth must be "connection" or "local"');
   }
   if (raw.statusLine !== undefined && typeof raw.statusLine !== 'boolean' && raw.statusLine !== 'brief' && raw.statusLine !== 'full') {
     problems.push('statusLine must be true, false, "full" or "brief"');

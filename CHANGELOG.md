@@ -3,6 +3,69 @@
 All notable changes to dsh-guard. Versions follow [Semantic Versioning](https://semver.org/); the
 plugin's own version appears in the `install.ps1` banner and in `-Status` output.
 
+## 0.7.5 — 2026-11-26
+
+### Added — localization
+
+- **The status page is Chinese by default**, with every row label, counter and the sessions section
+  translated; rule ids, paths and API names stay in English. `?lang=en` renders the original English
+  page. The page now refreshes itself every 15 seconds, so a browser tab stays live.
+- **The settings section is fully Chinese**: chips (`加载于 / 进程 / 询问 / 已批准 / 已拒绝 / 待定`),
+  table headers (`时间 / 判定 / 规则 / 目标`), audit chips (`行 / 最近200 / 轮转`) and the footer
+  (`规则：批量 … · 硬拦 …`).
+- **0.7.4 (same day, folded in here)**: the URL control became a read-only input that selects the
+  whole address on click, the copy feedback moved next to the button, and the address is taken from
+  the host-computed `surfaces.thisPage` instead of `window.location.origin` (which is `null` inside a
+  sandboxed iframe and produced a useless `null/...` link).
+
+### Tests
+
+1 new check (244 → **245**): the page defaults to Chinese and still renders English on `?lang=en`.
+
+## 0.7.3 — 2026-11-26
+
+### Fixed — the "open status page" control did nothing in the desktop shell
+
+The section called `window.open('/dsh-guard/status', '_blank')`, which the Electron shell blocks, so the
+click was silently swallowed. It is now a real `<a href … target="_blank" rel="noopener noreferrer">`
+plus a **复制链接** button (Clipboard API with a `textarea`/`execCommand` fallback) and the absolute URL
+rendered as selectable text. One of the three works even where the shell blocks new windows.
+
+## 0.7.2 — 2026-11-26
+
+### Changed — two keys no longer need a restart
+
+`statusRouteAuth` and `askMode` are re-read from `dsh-guard.json` when its mtime changes, at the next
+request or tool call. Saving "open the status page locally" or "refuse instead of ask" therefore takes
+effect immediately, instead of after another restart. A malformed file keeps the apply-time values.
+Every other key still needs a restart, as documented.
+
+Measured need: the settings save wrote `statusRouteAuth: "local"` at 11:32 while the running instance
+had loaded the config at 11:31, so the page stayed at 401 until a restart — a needless round trip for a
+read-only toggle.
+
+### Tests
+
+2 new checks (242 → **244**): a saved `askMode` changes the very next gate decision, and a saved
+`statusRouteAuth: "local"` serves the next request. The two checks that had been accidentally
+replaced while inserting this block (multiple `additionalRoots`, the normalizer) were restored.
+
+## 0.7.1 — 2026-11-26
+
+### Added
+
+- **`statusRouteAuth`** (`"connection"` | `"local"`, default `"connection"`): the read-only status page
+  can now be opened in a plain browser tab on a single-user machine. `/dsh-guard/action` — which can
+  rewrite config and switch the gate off — stays behind the host-connection fence in both modes.
+- The settings section exposes it as a select, and **额外可信根 / extraGatedTools** are now multi-line
+  inputs: one path per line, or comma/semicolon separated. `additionalRoots` was always an array, so
+  several projects are fine; the UI just made that obvious.
+
+### Tests
+
+4 new checks (238 → **242**): the page serves locally when opened, the default still returns 503
+without a host connection, `additionalRoots` with two roots, and the `statusRouteAuth` normalizer.
+
 ## 0.7.0 — 2026-11-25
 
 The noise fixes quantified from 104 live gate asks (2.38% of judged calls): 28 came from POSIX paths

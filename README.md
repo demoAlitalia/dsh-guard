@@ -199,11 +199,12 @@ All keys are optional; the defaults are what the installer writes.
 | `auditLog` | absolute path | `<stateDir>\guard-audit.jsonl` | The ledger. |
 | `loadMarker` | absolute path | `""` (off) | Load receipt appended on every `apply()`. The status-route trace is written beside it. |
 | `protectedRoots` | array of paths | your home and `C:\` | Roots where mass scope is assumed for anything but a named single file. |
-| `additionalRoots` | array of paths | `[]` | Extra trusted roots, for sessions that span several projects. Widens `inside`; weakens no rule. |
+| `additionalRoots` | array of paths | `[]` | Extra trusted roots, for sessions that span several projects — as many as you need (the settings field takes one path per line). Widens `inside`; weakens no rule. |
 | `statusLine` | `true` / `false` / `"brief"` | `true` | `"brief"` keeps posture, workspace and switches and drops the counters (~120 chars instead of ~430). |
 | `auditMaxBytes` | integer | `8000000` | Rotate the ledger at this size; a `rotation` row marks the new file. |
 | `auditKeep` | integer | `3` | Rotated copies to keep (`guard-audit.jsonl.1` … `.N`). |
 | `loadMarkerKeep` | integer | `20` | Load-receipt blocks to keep (one block per `apply()`). |
+| `statusRouteAuth` | `"connection"` / `"local"` | `connection` | Who may read the read-only status page; the action route stays fenced either way. |
 | `askMode` | `"ask"` / `"deny"` | `ask` | What an escalation does: ask, or refuse with the same reason. Use `deny` where approvals are disabled — an ask is auto-rejected there and reads as an approval error. |
 | `rememberApproved` | `{ enabled, ttlSeconds }` | `{ false, 900 }` | Opt-in: remember an **exact** command + scope after it was approved **and executed**, for the TTL. |
 | `extraGatedTools` | array of tool names | `[]` | Tools beyond `pwsh`/`write`/`edit` that get the scope check (`run_code`, …). Ungated mutating-looking tools are logged once as `untracked-tool`. |
@@ -212,8 +213,9 @@ All keys are optional; the defaults are what the installer writes.
 | `configFile` | absolute path | unset | Read settings from this JSON file. Inline keys win field by field. |
 
 Editing configuration: change `<profile>\cordis.patch.yml` (or `dsh-guard.json` if you installed with
-`-UseConfigFile`) and **restart dsh**. Changing only the plugin *body* still needs a restart, because
-the module is imported at startup.
+`-UseConfigFile`) and **restart dsh**. Exception: `statusRouteAuth` and `askMode` are re-read when the
+JSON file changes, so those two take effect on the next request or call. Changing only the plugin
+*body* still needs a restart, because the module is imported at startup.
 
 ## Using it
 
@@ -388,7 +390,7 @@ backups are left alone**; delete them yourself if you want them gone.
 ## Development
 
 ```powershell
-node test/matrix.mjs      # 238 offline checks: rule matrix, switches, workspace resolution,
+node test/matrix.mjs      # 245 offline checks: rule matrix, switches, workspace resolution,
                           # action classification, read-only silence, alias traps, sandbox floor,
                           # escalation wording, status surface, plugin wiring
 node scripts/sync-source.mjs --check    # is this tree in sync with the workspace copy?

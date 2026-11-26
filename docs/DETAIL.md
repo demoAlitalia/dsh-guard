@@ -78,8 +78,9 @@ is exact rather than timestamp-guessed. The rows persist in `guard-outcomes.json
 ## Configuration
 
 `<profile>\\dsh-guard.json`, discovered from the plugin module's own location (the bundle row carries no machine paths), or an
-explicit `configFile` on the row. Most keys need a `dsh` restart; the emergency switches and the audit
-rotation thresholds do not.
+explicit `configFile` on the row. Most keys need a `dsh` restart; `statusRouteAuth` and `askMode` are
+re-read when the JSON file changes, so those two take effect on the next request or call, and the
+emergency switches and audit rotation thresholds do not need one either.
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -87,7 +88,8 @@ rotation thresholds do not.
 | `gating` | `true` | `false` is shadow mode: rules are evaluated and audited, every call is allowed |
 | `statusLine` | `true` | `true`, `false` or `"brief"` (posture + workspace + switches, no counters) |
 | `askMode` | `ask` | `deny` refuses with the same reason where no approval answerer exists |
-| `additionalRoots` | `[]` | extra trusted roots |
+| `statusRouteAuth` | `connection` | `local` lets a plain browser tab read the status page; `/dsh-guard/action` stays fenced |
+| `additionalRoots` | `[]` | extra trusted roots — a list, as many as you need |
 | `extraGatedTools` | `[]` | tools beyond pwsh/write/edit that get the scope check |
 | `protectedRoots` | home and `C:\` | roots where mass scope is assumed |
 | `rememberApproved` | `{ enabled: false, ttlSeconds: 900 }` | opt-in: remember an exact command after it was approved **and executed** |

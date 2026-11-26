@@ -141,7 +141,7 @@ now written to `<loadMarker>-status-route.txt`.
 
 ## Verification posture
 
-`test/matrix.mjs` runs 238 checks with plain Node, an injected `readPath`, and no real filesystem: the
+`test/matrix.mjs` runs 245 checks with plain Node, an injected `readPath`, and no real filesystem: the
 rule matrix, switch semantics, workspace resolution, action classification, read-only silence, alias
 traps, the bypass floor, escalation wording, the status surface, and plugin wiring. Rule changes must
 re-run it.

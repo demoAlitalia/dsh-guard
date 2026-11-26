@@ -89,6 +89,7 @@ window.__ModuleLoader__.load({
                 statusLine: e.statusLine === 'brief' ? 'brief' : (e.statusLine === false ? 'false' : 'true'),
                 gating: e.gating !== false,
                 askMode: e.askMode === 'deny' ? 'deny' : 'ask',
+                statusRouteAuth: e.statusRouteAuth === 'local' ? 'local' : 'connection',
                 additionalRoots: (e.additionalRoots || []).join(', '),
                 extraGatedTools: (e.extraGatedTools || []).join(', '),
                 rememberApproved: !!(e.rememberApproved && e.rememberApproved.enabled),
@@ -126,8 +127,11 @@ window.__ModuleLoader__.load({
             statusLine: form.statusLine === 'brief' ? 'brief' : (form.statusLine === 'false' ? false : true),
             gating: form.gating,
             askMode: form.askMode === 'deny' ? 'deny' : 'ask',
-            additionalRoots: String(form.additionalRoots || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean),
-            extraGatedTools: String(form.extraGatedTools || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean),
+            statusRouteAuth: form.statusRouteAuth === 'local' ? 'local' : 'connection',
+            // Accept commas, semicolons or one entry per line: paths contain backslashes but never
+            // those separators, so splitting on them is safe.
+            additionalRoots: String(form.additionalRoots || '').split(/[\n,;]+/).map(function (s) { return s.trim(); }).filter(Boolean),
+            extraGatedTools: String(form.extraGatedTools || '').split(/[\n,;]+/).map(function (s) { return s.trim(); }).filter(Boolean),
             rememberApproved: { enabled: form.rememberApproved, ttlSeconds: 900 },
           },
         })
@@ -137,6 +141,43 @@ window.__ModuleLoader__.load({
             else setErr((j && j.error) || '保存失败');
           })
           .catch(function (e) { setBusy(false); setErr(String((e && e.message) || e)); });
+      };
+
+      // The desktop shell blocks window.open(), so "open in a tab" did nothing. The absolute URL is
+      // also rendered as a READ-ONLY input: clicking it selects the whole address, which works even
+      // when the Clipboard API is denied (iframe/shadow DOM), and gives visible feedback at the top.
+      // Prefer the ABSOLUTE url the host computed from the request Host header. In a sandboxed iframe
+      // `window.location.origin` is "null", so an origin-built link was useless there.
+      var statusUrl = String((data && data.surfaces && data.surfaces.thisPage)
+        || (String((typeof window !== 'undefined' && window.location && window.location.origin) || '') + '/dsh-guard/status'));
+      var cn = react.useState(''); var copyNote = cn[0], setCopyNote = cn[1];
+      var noteTimer = null;
+      var note = function (text) {
+        setCopyNote(text);
+        if (noteTimer) clearTimeout(noteTimer);
+        noteTimer = setTimeout(function () { setCopyNote(''); }, 3000);
+      };
+      var copyStatusUrl = function () {
+        var fallback = function () {
+          try {
+            var ta = document.createElement('textarea');
+            ta.value = statusUrl;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            var ok = document.execCommand('copy');
+            ta.remove();
+            note(ok ? '已复制 ✓' : '请点地址框后按 Ctrl+C');
+          } catch (e2) { note('请点地址框后按 Ctrl+C'); }
+        };
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(statusUrl).then(function () { note('已复制 ✓'); }, fallback);
+            return;
+          }
+        } catch (e) { /* fall through */ }
+        fallback();
       };
 
       if (!data) {
@@ -169,15 +210,26 @@ window.__ModuleLoader__.load({
         h('div', { className: 'gn-head' },
           h('strong', null, 'dsh-guard ' + p.id),
           h(Chip, { tone: String(posture.headline || '').indexOf('DISABLED') === 0 ? 'warn' : 'ok' }, posture.headline || ''),
-          h(Chip, null, 'loaded ' + String(p.loadedAt || '').slice(0, 19)),
-          h(Chip, null, 'pid ' + p.pid),
-          h('span', { className: 'gn-link', onClick: function () { window.open('/dsh-guard/status', '_blank'); } }, '打开状态页')),
+          h(Chip, null, '加载于 ' + String(p.loadedAt || '').slice(0, 19)),
+          h(Chip, null, '进程 ' + p.pid),
+          h('a', { className: 'gn-link', href: statusUrl, target: '_blank', rel: 'noopener noreferrer' }, '打开'),
+          h('input', {
+            type: 'text',
+            readOnly: true,
+            value: statusUrl,
+            title: '点击选中整条地址，然后按 Ctrl+C',
+            onFocus: function (ev) { ev.target.select(); },
+            onClick: function (ev) { ev.target.select(); },
+            style: { width: '25em', font: 'inherit', fontSize: '11px', padding: '2px 4px' },
+          }),
+          h('button', { className: 'gn-btn', type: 'button', onClick: copyStatusUrl }, '复制'),
+          h('span', { className: 'gn-muted' }, copyNote)),
 
         h(Card, { title: '工作区与目录' },
           h('div', { className: 'gn-muted' }, 'workspace 回退值：' + (ws.configuredFallback || '（未设置：每个会话用自己的 cwd）')),
           sessions.length
             ? h('table', { className: 'gn-table' },
-              h('thead', null, h('tr', null, h('th', null, 'session'), h('th', null, 'workspace'), h('th', null, '当前目录'))),
+              h('thead', null, h('tr', null, h('th', null, '会话'), h('th', null, '工作区'), h('th', null, '当前目录'))),
               h('tbody', null, sessions.map(function (s) {
                 return h('tr', { key: s.id },
                   h('td', { className: 'mono' }, s.id),
@@ -188,11 +240,11 @@ window.__ModuleLoader__.load({
 
         h(Card, { title: '审批结果（最近 ' + (ap.hours || 24) + ' 小时，时间为本地时间）' },
           h('div', { className: 'gn-row' },
-            h(Chip, null, '闸门 ask ' + ((audit.window && audit.window.ask) || 0)),
-            h(Chip, null, 'asked ' + (ap.asked || 0)),
-            h(Chip, { tone: 'ok' }, 'approved ' + (ap.approved || 0)),
-            h(Chip, { tone: ap.rejected ? 'warn' : undefined }, 'rejected ' + (ap.rejected || 0)),
-            h(Chip, null, 'pending ' + (ap.pending || 0)),
+            h(Chip, null, '闸门询问 ' + ((audit.window && audit.window.ask) || 0)),
+            h(Chip, null, '询问 ' + (ap.asked || 0)),
+            h(Chip, { tone: 'ok' }, '已批准 ' + (ap.approved || 0)),
+            h(Chip, { tone: ap.rejected ? 'warn' : undefined }, '已拒绝 ' + (ap.rejected || 0)),
+            h(Chip, null, '待定 ' + (ap.pending || 0)),
             h(Chip, null, '批准率 ' + pct(ap.approvalRate))),
           (ap.autoRejected || 0) > 0
             ? h('div', { className: 'gn-muted' }, '其中 ' + ap.autoRejected + ' 次在 50ms 内被拒绝：没有可用应答者，按 fail-closed 自动拒绝（等于静默拦截，不是人拒的）。')
@@ -207,17 +259,17 @@ window.__ModuleLoader__.load({
                 return h('tr', { key: r.rule }, h('td', { className: 'mono' }, r.rule), h('td', null, String(r.count)));
               })))
             : h('div', { className: 'gn-muted' }, '这个窗口内没有弹窗被拒——要么没触发，要么判定准确。'),
-          h('div', { className: 'gn-muted' }, '累计：' + (all.asked || 0) + ' asked · ' + (all.approved || 0) + ' approved · ' + (all.rejected || 0) + ' rejected' + (all.since ? '（自 ' + fmtTime(all.since) + '）' : ''))),
+          h('div', { className: 'gn-muted' }, '累计：' + (all.asked || 0) + ' 次询问 · ' + (all.approved || 0) + ' 已批准 · ' + (all.rejected || 0) + ' 已拒绝' + (all.since ? '（自 ' + fmtTime(all.since) + '）' : ''))),
 
         h(Card, { title: '审计台账（时间为本地时间）' },
           h('div', { className: 'gn-row' },
-            h(Chip, null, (audit.total || 0) + ' rows'),
-            h(Chip, null, 'last-200 a' + ((audit.last200 && audit.last200.allow) || 0) + ' / q' + ((audit.last200 && audit.last200.ask) || 0) + ' / d' + ((audit.last200 && audit.last200.deny) || 0)),
-            h(Chip, null, 'rotation ' + (audit.rotation || ''))),
+            h(Chip, null, (audit.total || 0) + ' 行'),
+            h(Chip, null, '最近200 放行/询问/拦截：' + ((audit.last200 && audit.last200.allow) || 0) + ' / ' + ((audit.last200 && audit.last200.ask) || 0) + ' / ' + ((audit.last200 && audit.last200.deny) || 0)),
+            h(Chip, null, '轮转 ' + (audit.rotation || ''))),
           h('div', { className: 'gn-muted mono' }, audit.file || ''),
           (audit.recent || []).length
             ? h('table', { className: 'gn-table' },
-              h('thead', null, h('tr', null, h('th', null, 'time'), h('th', null, 'decision'), h('th', null, 'rules'), h('th', null, 'target'))),
+              h('thead', null, h('tr', null, h('th', null, '时间'), h('th', null, '判定'), h('th', null, '规则'), h('th', null, '目标'))),
               h('tbody', null, audit.recent.slice(0, 8).map(function (r, i) {
                 return h('tr', { key: i },
                   h('td', { className: 'mono' }, fmtTime(r.ts)),
@@ -250,19 +302,26 @@ window.__ModuleLoader__.load({
             h('option', { value: 'ask' }, 'ask（弹窗问人）'),
             h('option', { value: 'deny' }, 'deny（无应答者时直接拒绝）')),
             h('span', null, '额外可信根'),
-            h('input', {
-              type: 'text',
-              size: 34,
-              placeholder: 'D:\\work\\my-project',
+            h('textarea', {
+              rows: 2,
+              cols: 46,
+              placeholder: 'D:\\work\\project-a\nD:\\work\\project-b',
               value: form ? form.additionalRoots : '',
               onChange: function (ev) { setForm(Object.assign({}, form, { additionalRoots: ev.target.value })); },
             }),
+            h('span', null, '状态页访问'),
+            h('select', {
+              value: form ? form.statusRouteAuth : 'connection',
+              onChange: function (ev) { setForm(Object.assign({}, form, { statusRouteAuth: ev.target.value })); },
+            },
+            h('option', { value: 'connection' }, '仅 app 连接（默认）'),
+            h('option', { value: 'local' }, '本地浏览器可读（只读页）')),
             h('label', { className: 'gn-row' },
               h('input', {
                 type: 'checkbox',
                 checked: !!(form && form.gating),
                 onChange: function (ev) { setForm(Object.assign({}, form, { gating: ev.target.checked })); },
-              }), 'gating（关闭=影子模式：只记录不拦）'),
+              }), '闸门启用（关闭=影子模式：只记录不拦）'),
             h('label', { className: 'gn-row' },
               h('input', {
                 type: 'checkbox',
@@ -277,8 +336,8 @@ window.__ModuleLoader__.load({
           msg ? h('div', { className: 'gn-msg' }, msg) : null),
 
         h('div', { className: 'gn-muted' },
-          '规则 bulk=' + ((data.rules && data.rules.bulk) || []).length +
-          ' · deny=' + ((data.rules && data.rules.deny) || []).length +
+          '规则：批量 ' + ((data.rules && data.rules.bulk) || []).length +
+          ' · 硬拦 ' + ((data.rules && data.rules.deny) || []).length +
           ' · 面板数据来自会话事件 approval/asked + approval/decided（按 approval id 配对）'));
     }
 
